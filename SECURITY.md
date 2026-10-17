@@ -8,7 +8,7 @@ This system is a single-machine or lab-LAN research tool. It is **not** a valida
 
 ### Reporting a vulnerability
 Please do not open a public issue for a security problem. Report it privately to the maintainer:
-**<CONTACT — fill in before publishing>**. Include steps to reproduce. We aim to acknowledge reports within 7 days.
+use GitHub private vulnerability reporting (the "Report a vulnerability" button on the Security tab). Include steps to reproduce. We aim to acknowledge reports within 7 days.
 
 ### Deployment notes
 - Run on a trusted network only. Do not expose the port to the internet; if remote access is needed, use a reverse proxy with TLS and authentication.
@@ -21,7 +21,7 @@ Please do not open a public issue for a security problem. Report it privately to
 本系统是单机或实验室局域网的研究工具，**开箱即用时并非经过验证的 GxP 系统**。
 
 ### 报告安全问题
-请勿为安全问题公开提交 issue。请私下联系维护者：**<联系方式——发布前填写>**，并附上复现步骤。我们力争在 7 天内回复。
+请勿为安全问题公开提交 issue。请使用 GitHub 的私密漏洞报告功能（仓库 Security 页面的 “Report a vulnerability” 按钮）私下提交，并附上复现步骤。我们力争在 7 天内回复。
 
 ### 部署注意事项
 - 仅在可信网络中运行。请勿把端口直接暴露到互联网；如需远程访问，请使用带 TLS 与身份验证的反向代理。
