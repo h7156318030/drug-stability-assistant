@@ -15,6 +15,7 @@ import teaching as T
 import streamlit as st
 # 在 import app 前模拟已登录（避免模块级 login_page+st.stop 在 bare 模式崩溃）
 st.session_state.user = {"username": "admin", "role": "admin", "name": "Admin"}
+import ui_common as UC
 import app as APP
 
 ok = []
@@ -27,17 +28,17 @@ check('T3 app导入', APP is not None)
 
 # 2. dashboard_aggregate 缓存函数可调用
 DB.save_study(M.StabilityStudy('D1', 'x', '化学药', '25', '全检', biologic=False).to_dict())
-agg = APP.dashboard_aggregate('testuser')
+agg = UC.dashboard_aggregate('testuser')
 check('T3 dashboard_aggregate返回字段', 'n_study' in agg and agg['n_study'] >= 1)
 
 # 3. ATTRIBUTE_OPTIONS 存在且非空
-check('T3 ATTRIBUTE_OPTIONS', len(APP.ATTRIBUTE_OPTIONS) > 0)
+check('T3 ATTRIBUTE_OPTIONS', len(UC.ATTRIBUTE_OPTIONS) > 0)
 
 # 4. load_study_obj 缓存
 s = M.StabilityStudy('D2', 'y', '生物制品', '2-8', '全检', biologic=True, molecule_type='单抗')
 P.add_sample_with_plan(s, 'B1', 'vial', '100', ['冷藏'], molecule_type='单抗')
 DB.save_study(s.to_dict())
-sobj = APP.load_study_obj(s.study_id)
+sobj = UC.load_study_obj(s.study_id)
 check('T3 load_study_obj缓存', sobj is not None and sobj.biologic is True)
 
 # 5. TIME_POINT_PRESETS 预设可用（planner）
@@ -64,7 +65,7 @@ m_c, v_c, _ = A._series_for(s3l.samples[0], '效价', '冷藏')
 check('T3 冷藏精确配对8点', len(v_c) == 8)
 
 # 8. persist 函数存在（app.py 保存入口）
-check('T3 persist函数', callable(getattr(APP, 'persist', None)))
+check('T3 persist函数', callable(getattr(UC, "persist", None)))
 
 # 9. 验证 expiry_extrapolation 数据结构
 sl = A.shelf_life([0,3,6,9,12], [100,97,94,91,88], 90.0, 'lower')

@@ -74,6 +74,76 @@ def regression_summary(months: np.ndarray, vals: np.ndarray) -> Optional[Dict]:
     }
 
 
+def _batch_series(study: StabilityStudy, attribute: str, condition: str) -> Dict[str, Tuple[np.ndarray, np.ndarray]]:
+    """同一条件下各批次的 (月点, 数值) 序列；少于 2 个点的批次不纳入。"""
+    out: Dict[str, Tuple[np.ndarray, np.ndarray]] = {}
+    for s in study.samples:
+        months, vals, _ = _series_for(s, attribute, condition)
+        if len(vals) >= 2:
+            out[s.batch_id] = (np.asarray(months, dtype=float), np.asarray(vals, dtype=float))
+    return out
+
+
+def q1e_poolability(series: Dict[str, Tuple[np.ndarray, np.ndarray]], alpha: float = 0.25) -> Dict:
+    """ICH Q1E 批合并检验（ANCOVA 逐级 F 检验，显著性水平 alpha = 0.25）。
+
+    第一步（斜率）：比较“各批斜率与截距均不同”的全模型与“公共斜率、批次截距不同”的模型。
+        p_slope < alpha 表示斜率存在批间差异，不可合并。
+    第二步（截距，仅当斜率可合并时）：比较“公共斜率、批次截距不同”与“公共斜率与截距”模型。
+        p_intercept < alpha 表示截距存在批间差异，不可合并。
+    两步均不显著（p ≥ alpha）时，批次数据可合并回归外推。
+
+    返回 {poolable, p_slope, p_intercept, n_batches, reason}。
+    """
+    batches = list(series.keys())
+    k = len(batches)
+    res = {"poolable": None, "p_slope": None, "p_intercept": None, "n_batches": k, "alpha": alpha, "reason": ""}
+    if k < 2:
+        res["reason"] = "批数不足（<2），无需合并检验。"
+        return res
+    xs = np.concatenate([series[b][0] for b in batches])
+    ys = np.concatenate([series[b][1] for b in batches])
+    g = np.concatenate([np.full(len(series[b][1]), i) for i, b in enumerate(batches)])
+    n = len(ys)
+    D = np.stack([(g == i).astype(float) for i in range(k)], axis=1)  # 批次截距哑变量
+    X_full = np.hstack([D, D * xs[:, None]])                          # 批次截距 + 批次斜率
+    X_slope = np.hstack([D, xs[:, None]])                             # 批次截距 + 公共斜率
+    X_common = np.column_stack([np.ones(n), xs])                      # 公共截距 + 公共斜率
+
+    def rss(X):
+        beta, *_ = np.linalg.lstsq(X, ys, rcond=None)
+        return float(np.sum((ys - X @ beta) ** 2))
+
+    rss_f, rss_s, rss_c = rss(X_full), rss(X_slope), rss(X_common)
+    df_f = n - 2 * k
+    if df_f <= 0:
+        res["reason"] = "数据点不足以进行 ANCOVA 检验（自由度 ≤ 0）。"
+        return res
+
+    def f_pvalue(rss_small, rss_big, df_num, df_den):
+        if rss_big <= 1e-12:
+            return 0.0 if rss_small - rss_big > 1e-12 else 1.0
+        F = max(0.0, ((rss_small - rss_big) / df_num) / (rss_big / df_den))
+        return float(1.0 - stats.f.cdf(F, df_num, df_den))
+
+    p_slope = f_pvalue(rss_s, rss_f, k - 1, df_f)
+    res["p_slope"] = p_slope
+    if p_slope < alpha:
+        res["poolable"] = False
+        res["reason"] = f"各批斜率存在显著差异（p={p_slope:.3f} < {alpha}），不可合并，应分批推算有效期。"
+        return res
+    df_s = n - (k + 1)
+    p_int = f_pvalue(rss_c, rss_s, k - 1, df_s) if df_s > 0 else 1.0
+    res["p_intercept"] = p_int
+    if p_int < alpha:
+        res["poolable"] = False
+        res["reason"] = f"斜率无显著差异，但各批截距存在显著差异（p={p_int:.3f} < {alpha}），不可合并。"
+        return res
+    res["poolable"] = True
+    res["reason"] = f"斜率与截距均无显著批间差异（p_slope={p_slope:.3f}，p_intercept={p_int:.3f} ≥ {alpha}），可合并回归外推。"
+    return res
+
+
 def pooled_regression(study: StabilityStudy, attribute: str, condition: str) -> Optional[Dict]:
     """
     批间合并回归（ICH Q1E 多批合并法）：将同一条件下所有批次的同一检测项目
@@ -107,10 +177,11 @@ def pooled_regression(study: StabilityStudy, attribute: str, condition: str) -> 
             slopes.append(r["slope"])
     slopes = np.array(slopes)
     slope_cv = (slopes.std(ddof=0) / abs(slopes.mean())) * 100.0 if slopes.mean() != 0 else float("nan")
-    # 合并可行性：斜率方向一致且离散度不过大（CV<50% 视为可合并外推，经验阈值）
-    poolable = bool(np.all(np.sign(slopes) == np.sign(slopes[0])) and (slope_cv < 50.0))
+    # 合并可行性：ICH Q1E 批合并检验（斜率与截距，显著性水平 0.25）
+    q = q1e_poolability(_batch_series(study, attribute, condition))
     reg.update({"n_batches": len(series), "batch_slopes": slopes.tolist(),
-                "slope_cv": float(slope_cv), "poolable": poolable})
+                "slope_cv": float(slope_cv), "poolable": bool(q["poolable"]),
+                "poolability": q})
     return reg
 
 
@@ -646,10 +717,11 @@ def batch_variance_analysis(study: StabilityStudy, attribute: str, condition: st
     mean_y0 = y0s.mean()
     cv_y0 = (y0s.std(ddof=0) / abs(mean_y0) * 100.0) if mean_y0 != 0 else float("nan")
     cv_slope = (slopes.std(ddof=0) / abs(slopes.mean()) * 100.0) if slopes.mean() != 0 else float("nan")
-    # 等效性：批间初始值相对RSD<5% 视为等效；斜率同向且CV<30%
+    # 等效性：ICH Q1E 批合并检验（斜率与截距）；初始值 CV 与斜率方向仅作为辅助信息
     equivalent_initial = bool(cv_y0 < 5.0)
     same_direction = bool(np.all(np.sign(slopes) == np.sign(slopes[0])))
-    poolable = bool(equivalent_initial and same_direction and cv_slope < 30.0)
+    q = q1e_poolability(_batch_series(study, attribute, condition))
+    poolable = bool(q["poolable"])
     # 合并外推倍率建议（基于合并数据点数 vs 单批，经验：合并后外推可达单批观测期2倍）
     return {
         "n_batches": len(batches),
@@ -658,9 +730,9 @@ def batch_variance_analysis(study: StabilityStudy, attribute: str, condition: st
         "equivalent_initial": equivalent_initial,
         "same_direction": same_direction,
         "poolable": poolable,            # 是否可合并外推
-        "conclusion": ("批间等效，可合并外推" if poolable else
-                       "批间不等效，应分别推算有效期" if not equivalent_initial
-                       else "斜率方向/离散度不满足合并条件"),
+        "conclusion": ("批间无显著差异（Q1E），可合并外推" if poolable else
+                       "批间存在显著差异（Q1E），应分别推算有效期"),
+        "poolability": q,
         "batches": batches,
     }
 
@@ -1477,60 +1549,17 @@ def matrix_bracket_compliance(study: StabilityStudy) -> Dict:
 
 def poolability_assessment(study: StabilityStudy, attribute: str, condition: str) -> Dict:
     """
-    ICH Q1E 批合并（poolability）评估：
-    - 检验各批斜率是否等价（ANOVA 风格：批间斜率方差 vs 批内残差）
-    - 若各批降解速率一致，可合并数据外推有效期
-    返回 {poolable, f_ratio, conclusion, note}
+    ICH Q1E 批合并（poolability）评估：对外接口，内部调用 q1e_poolability。
+    返回 {attribute, condition, poolable, p_slope, p_intercept, n_batches, conclusion, note}。
     """
-    res = {"attribute": attribute, "condition": condition,
-           "poolable": None, "f_ratio": None, "conclusion": "", "note": ""}
-    slopes, resid_vars = [], []
-    for s in study.samples:
-        xs, ys = [], []
-        for m in s.measurements:
-            if m.attribute != attribute or m.value is None:
-                continue
-            tp = _tp_by_ref(study, s, m)
-            if tp is None or tp.condition != condition:
-                continue
-            try:
-                x = float(m.time_point_id)
-            except (TypeError, ValueError):
-                x = tp.month
-            xs.append(x)
-            ys.append(m.value)
-        if len(xs) >= 2:
-            sl, inter, _, _, se = stats.linregress(xs, ys)
-            yhat = [sl * xi + inter for xi in xs]
-            resid = [(y - yh) ** 2 for y, yh in zip(ys, yhat)]
-            rv = float(np.mean(resid)) if resid else 0.0
-            slopes.append(sl)
-            resid_vars.append(rv)
-    if len(slopes) < 2:
-        res["note"] = "批数不足，无法评估合并性。"
-        res["poolable"] = None
-        return res
-    between_slope_var = float(np.var(slopes, ddof=1))
-    slope_std = float(np.std(slopes, ddof=1)) if len(slopes) >= 2 else 0.0
-    within_resid_var = float(np.mean(resid_vars)) if resid_vars else 0.0
-    if within_resid_var > 1e-9:
-        f_ratio = between_slope_var / within_resid_var
-    else:
-        # 残差近0（完美拟合）：改用批间斜率标准差绝对判据
-        f_ratio = float("inf") if slope_std > 0.5 else 0.0
-    res["f_ratio"] = f_ratio
-    # 经验准则：批间斜率差异不显著 -> 可合并（非严格F检验，供筛选）
-    poolable = (f_ratio < 4.0) and (slope_std < 0.5)
-    if poolable:
-        res["poolable"] = True
-        res["conclusion"] = "各批降解速率一致，数据可合并评估（Q1E poolable）。"
-    else:
-        res["poolable"] = False
-        res["conclusion"] = "批间降解速率差异显著，不可简单合并，建议逐批或减括号评估。"
-    res["note"] = (f"斜率批间标准差={slope_std:.3f}%/月，方差比 F≈{f_ratio:.2f}"
-                   "（<4 且 <0.5%/月 视为可合并，仅供参考）。")
+    series = _batch_series(study, attribute, condition)
+    q = q1e_poolability(series)
+    res = {"attribute": attribute, "condition": condition, "poolable": q["poolable"],
+           "p_slope": q["p_slope"], "p_intercept": q["p_intercept"], "n_batches": q["n_batches"],
+           "conclusion": ("可合并（Q1E）" if q["poolable"] else
+                          ("不可合并（Q1E）" if q["poolable"] is False else "无法评估")),
+           "note": q["reason"]}
     return res
-
 
 def transport_stress_assessment(study: StabilityStudy, attribute: str,
                                  spec_limit: float = None, direction: str = None) -> Dict:

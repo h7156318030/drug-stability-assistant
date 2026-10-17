@@ -26,6 +26,13 @@
 - **Refactor**: CSV bulk import moved to `src/importers.py`; UTF-8 and GBK files are accepted, and skipped rows are reported with reasons.
 - **Interface**: new visual theme (`src/ui_theme.py`, `.streamlit/config.toml`): colour palette, metric cards, sidebar brand block, redesigned login page, branded Plotly template. Removed the Plotly keyword-argument deprecation warning.
 - **Tests**: `tests/test_functional.py` (numerical cross-checks, all 11 templates, storage/audit/backup, exports, authentication, lockout, roles, CSV import) and `tests/test_ui_workflows.py` (login, role navigation, study → sample → data entry, teaching examples, user management, password change, every page for four roles). The old `tests/test_app_flow.py` smoke test was removed: it used hard-coded widget indexes and was superseded by the workflow tests.
+- **Structure**: `app.py` is split into `src/ui_common.py` and 17 page modules in `src/pages/`; `app.py` is now a short entry point (about 150 lines).
+- **Interface language**: Chinese / English switch (`src/i18n.py`, `src/i18n_en.py`). About 450 interface strings, the teaching content and domain terms are translated. Analysis narrative text, chart titles and Excel/PDF reports remain Chinese. `tests/test_i18n.py` checks that every English page renders and that all headers are translated.
+- **PostgreSQL**: testing against PostgreSQL 16.2 found and fixed incompatibilities (SQLite-only upsert, PRAGMA-based migration, row handling for export, restore audit entry). `tests/test_postgres.py` runs when `STAB_TEST_PG_URL` is set.
+- **Statistics (ICH Q1E)**: batch poolability now uses the Q1E ANCOVA procedure (slopes first, then intercepts; significance level 0.25). It replaces three different empirical rules. p-values are reported. Checked in `tests/test_statistics_benchmark.py` against independent calculations (16 checks). Needs statistical review.
+- **Fixed**: the multi-model plot on the shelf-life page raised an error when testing an array's truth value.
+- **Electronic signatures extended**: creating users, enabling or disabling users, and generating a full backup now require password re-entry and write `ESIGN` records.
+- **Regulatory gap analysis**: `docs/en/gap_analysis.md` and `docs/zh/法规符合性差距分析.md` benchmark the program against ICH Q1A–Q1E, Q1B, Q1D, Q5C, Q2(R2)/Q14, Chinese guidance, 21 CFR Part 11 and ALCOA+, listing P0/P1/P2 gaps and items to verify against official texts.
 
 **中文**
 
@@ -51,6 +58,13 @@
 - **重构**：CSV 批量导入迁移至 `src/importers.py`；支持 UTF-8 与 GBK，跳过的行会给出原因。
 - **界面**：新视觉主题（`src/ui_theme.py`、`.streamlit/config.toml`）：配色、指标卡片、侧边栏品牌区、重新设计的登录页、统一的 Plotly 图表模板。消除了 Plotly 关键字参数弃用警告。
 - **测试**：`tests/test_functional.py`（数值对照、全部 11 个模板、存储/审计/备份、导出、认证、锁定、角色、CSV 导入）与 `tests/test_ui_workflows.py`（登录、角色导航、研究→样品→录入、教学示例、用户管理、改口令、四个角色下的全部页面）。旧的 `tests/test_app_flow.py` 依赖硬编码的控件序号，已被工作流测试取代并删除。
+- **结构**：`app.py` 拆分为 `src/ui_common.py` 与 `src/pages/` 下的 17 个页面模块；`app.py` 成为约 150 行的入口。
+- **界面语言**：中文 / English 切换（`src/i18n.py`、`src/i18n_en.py`）。约 450 条界面文字、教学内容与领域术语已译。分析叙述文字、图表标题与 Excel/PDF 报告仍为中文。`tests/test_i18n.py` 检查英文模式下全部页面可渲染、页眉全部已译。
+- **PostgreSQL**：在 PostgreSQL 16.2 上测试发现并修复了兼容性问题（仅 SQLite 支持的 upsert、基于 PRAGMA 的迁移、导出时的行处理、恢复审计记录）。设置 `STAB_TEST_PG_URL` 后运行 `tests/test_postgres.py`。
+- **统计（ICH Q1E）**：批合并判断改用 Q1E 的 ANCOVA 检验（先斜率、再截距，显著性水平 0.25），替换了原先三处各不相同的经验规则，并输出 p 值。由 `tests/test_statistics_benchmark.py` 与独立计算对照（16 项）。需要统计人员复核。
+- **修复**：有效期页的多模型图对数组做真值判断，导致报错。
+- **电子签名扩展**：创建用户、启用或禁用用户、生成整库备份均需重新输入口令，并写入 `ESIGN` 记录。
+- **法规符合性差距分析**：`docs/zh/法规符合性差距分析.md` 与 `docs/en/gap_analysis.md` 对标 ICH Q1A–Q1E、Q1B、Q1D、Q5C、Q2(R2)/Q14、中国指导原则、21 CFR Part 11 与 ALCOA+，列出 P0/P1/P2 差距，并标注需对照官方原文核实的条目。
 
 > **升级提示 / Upgrade note**: if an existing database still has the `admin` account with `Admin@2026`, log in and change the password. / 若现有数据库的 `admin` 账号仍使用 `Admin@2026`，请登录后立即修改。
 

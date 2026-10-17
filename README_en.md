@@ -22,6 +22,7 @@ A locally run tool for managing and analysing drug stability studies for chemica
 | Teaching guide | Glossary of regulatory terms, stage compliance checklists, common pitfalls |
 | Access and audit | Four roles (admin / manager / analyst / viewer); append-only audit log with hash-chain verification; login lockout; bcrypt password hashing |
 | Maintenance | Full JSON backup and restore; compliance self-check (DS–DP links, missing limits, audit coverage) |
+| Interface language | Switch between 中文 and English (translations cover interface text and teaching content; analysis narrative and reports remain Chinese) |
 
 ## Quick start
 
@@ -46,7 +47,7 @@ Run the tests (each test script uses a temporary database and never touches live
 python tests/run_all.py
 ```
 
-See the [User guide](docs/en/user_guide.md), [Regulatory basis](docs/en/regulatory_basis.md), [Architecture and testing](docs/en/architecture_and_testing.md), and the [Changelog](CHANGELOG.md).
+See the [User guide](docs/en/user_guide.md), [Regulatory basis](docs/en/regulatory_basis.md), [Gap analysis](docs/en/gap_analysis.md), [Architecture and testing](docs/en/architecture_and_testing.md), and the [Changelog](CHANGELOG.md).
 
 ## Project layout
 

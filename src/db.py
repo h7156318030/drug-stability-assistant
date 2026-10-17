@@ -112,17 +112,17 @@ def init_db():
         for stmt in _DDL:
             cur.execute(_sql(stmt))
         # 兼容已有库：补全 studies 新列（stage/related/meta_json）
-        try:
+        if _pg_url():
+            cur.execute("SELECT column_name AS name FROM information_schema.columns WHERE table_name='studies'")
+        else:
             cur.execute("PRAGMA table_info(studies)")
-            cols = {r[1] for r in cur.fetchall()}
-            for col, ctype in [("stage", "TEXT DEFAULT ''"),
-                               ("related_study_id", "TEXT DEFAULT ''"),
-                               ("related_study_type", "TEXT DEFAULT ''"),
-                               ("meta_json", "TEXT")]:
-                if col not in cols:
-                    cur.execute(f"ALTER TABLE studies ADD COLUMN {col} {ctype}")
-        except Exception:
-            pass
+        cols = {dict(r)["name"] for r in cur.fetchall()}
+        for col, ctype in [("stage", "TEXT DEFAULT ''"),
+                           ("related_study_id", "TEXT DEFAULT ''"),
+                           ("related_study_type", "TEXT DEFAULT ''"),
+                           ("meta_json", "TEXT")]:
+            if col not in cols:
+                cur.execute(f"ALTER TABLE studies ADD COLUMN {col} {ctype}")
         cur.close()
 
 
@@ -134,9 +134,16 @@ def save_study(data: Dict):
     with transaction() as conn:
         cur = conn.cursor()
         cur.execute(_sql(
-            """INSERT OR REPLACE INTO studies
+            """INSERT INTO studies
                (study_id,name,study_type,drug_name,sponsor,design,biologic,molecule_type,stage,related_study_id,related_study_type,meta_json,start_date,created_at,updated_at)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"""),
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+               ON CONFLICT (study_id) DO UPDATE SET
+                 name=excluded.name, study_type=excluded.study_type, drug_name=excluded.drug_name,
+                 sponsor=excluded.sponsor, design=excluded.design, biologic=excluded.biologic,
+                 molecule_type=excluded.molecule_type, stage=excluded.stage,
+                 related_study_id=excluded.related_study_id, related_study_type=excluded.related_study_type,
+                 meta_json=excluded.meta_json, start_date=excluded.start_date,
+                 updated_at=excluded.updated_at"""),
             (data["study_id"], data["name"], data["study_type"], data.get("drug_name"),
              data.get("sponsor"), data.get("design"), int(data.get("biologic", 0)),
              data.get("molecule_type"), data.get("stage", ""),
@@ -240,9 +247,7 @@ def export_all_json() -> str:
         cur = conn.cursor()
         def fetch(table):
             cur.execute(f"SELECT * FROM {table}")
-            cols = [d[0] for d in cur.description]
-            rows = cur.fetchall()
-            return [dict(zip(cols, r)) for r in rows]
+            return [dict(r) for r in cur.fetchall()]
         payload = {
             "tables": {
                 "studies": fetch("studies"),
@@ -302,15 +307,14 @@ def import_all_json(data: str, merge: bool = False):
                                 f"ON CONFLICT DO NOTHING", [r[c] for c in rcols])
         # 追加恢复审计（保留可追溯性，不破坏既有 audit_log）
         # 注意：audit_log 实际列名为 username/role/object_type/object_id/note（见 auth._init_db）
-        if not is_pg:
-            cur.execute(
-                "INSERT INTO audit_log (log_id, ts, username, role, action, object_type, object_id, note) "
-                "VALUES (?,?,?,?,?,?,?,?)",
-                (str(__import__("uuid").uuid4()),
-                 datetime.now().isoformat(timespec="seconds"),
-                 (os.environ.get("STABILITY_RESTORE_USER") or "system"), "system",
-                 "DB_RESTORE", "database", "-",
-                 f"恢复模式={'全量覆盖' if not merge else '追加'}（audit_log/users 保留）"))
+        cur.execute(
+            f"INSERT INTO audit_log (log_id, ts, username, role, action, object_type, object_id, note) "
+            f"VALUES ({ph},{ph},{ph},{ph},{ph},{ph},{ph},{ph})",
+            (str(__import__("uuid").uuid4()),
+             datetime.now().isoformat(timespec="seconds"),
+             (os.environ.get("STABILITY_RESTORE_USER") or "system"), "system",
+             "DB_RESTORE", "database", "-",
+             f"恢复模式={'全量覆盖' if not merge else '追加'}（audit_log/users 保留）"))
         conn.commit()
         cur.close()
     finally:

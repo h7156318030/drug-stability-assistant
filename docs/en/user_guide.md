@@ -18,6 +18,10 @@ Open `http://localhost:8501` in a browser. On first start the system creates the
 
 > **Note**: versions up to V2.3 used the fixed default password `Admin@2026`. If your database was created by an older version, log in with that password **immediately** and change it.
 
+## 1.1 Interface language
+
+Choose 中文 or English from the drop-down at the top of the login page or in the sidebar. The switch changes interface text only. Study names, batch numbers and attribute names stay as entered; report and chart titles are still in Chinese.
+
 ## 2. Roles and permissions
 
 | Role | Permitted actions |
@@ -29,7 +33,7 @@ Open `http://localhost:8501` in a browser. On first start the system creates the
 
 All write actions (create, update, delete, import, restore, login, password change) are recorded in the audit log. The audit log is append-only.
 
-**Sensitive actions need your password again**: deleting a study and restoring a backup ask you to re-enter your login password as an electronic signature. Wrong passwords count toward the login-failure limit and can lock the account temporarily.
+**Sensitive actions need your password again (electronic signature)**: deleting a study, generating a full backup, restoring a backup, creating users, and disabling or enabling users ask you to re-enter your login password. Wrong passwords count toward the login-failure limit and can lock the account temporarily. Each successful action is recorded in the audit log (`ESIGN`).
 
 ## 3. Recommended workflow
 

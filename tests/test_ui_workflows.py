@@ -135,7 +135,8 @@ at.sidebar.radio[0].set_value("用户管理").run()
 find_input(at.text_input, "新用户名").input("ui_new_analyst")
 find_input(at.text_input, "初始密码").input("Init#Pass2026")
 find_input(at.text_input, "姓名").input("界面新用户")
-select_option_containing(at, "角色", "analyst")
+select_option_containing(at, "角色", "分析员")
+next(t for t in at.text_input if t.key == "reauth_newuser").input("Test-Admin#2026")
 btn(at, "创建用户").click().run()
 check("界面创建用户后无异常", len(at.exception) == 0)
 check("新用户写入数据库", any(u["username"] == "ui_new_analyst" for u in AU.list_users()))
@@ -160,6 +161,33 @@ AU.change_password("admin", "Admin#New2026", "Test-Admin#2026")  # 还原，供�
 
 at.sidebar.radio[0].set_value("审计日志").run()
 check("审计日志页无异常", len(at.exception) == 0)
+
+# ---------------------------------------------------------------------------
+print("== 7. 关键操作需重新输入口令（电子签名）")
+at = new_app({"username": "admin", "name": "Admin", "role": "admin"})
+at.sidebar.radio[0].set_value("用户管理").run()
+find_input(at.text_input, "新用户名").input("ui_sig_user")
+find_input(at.text_input, "初始密码").input("Sig#Pass2026")
+find_input(at.text_input, "姓名").input("签名测试")
+select_option_containing(at, "角色", "只读访客")
+next(t for t in at.text_input if t.key == "reauth_newuser").input("wrong-password")
+btn(at, "创建用户").click().run()
+check("口令错误时不创建用户", not any(u["username"] == "ui_sig_user" for u in AU.list_users()))
+next(t for t in at.text_input if t.key == "reauth_newuser").input("Test-Admin#2026")
+btn(at, "创建用户").click().run()
+check("口令正确时创建用户", any(u["username"] == "ui_sig_user" for u in AU.list_users()))
+check("创建用户留下电子签名审计记录", any(r["action"] == "ESIGN" and r["object_id"] == "ui_sig_user"
+                                          for r in AU.read_audit(limit=500)))
+
+at = new_app({"username": "admin", "name": "Admin", "role": "admin"})
+at.sidebar.radio[0].set_value("系统维护").run()
+next(t for t in at.text_input if t.key == "reauth_backup").input("wrong-password")
+btn(at, "生成整库备份 (JSON)").click().run()
+check("口令错误时不生成备份（显示错误）", any("口令错误" in e.value for e in at.error))
+check("口令错误时备份未写入审计", not any(r["action"] == "DB_BACKUP" for r in AU.read_audit(limit=500)))
+next(t for t in at.text_input if t.key == "reauth_backup").input("Test-Admin#2026")
+btn(at, "生成整库备份 (JSON)").click().run()
+check("口令正确时生成备份并写入审计", any(r["action"] == "DB_BACKUP" for r in AU.read_audit(limit=500)))
 
 print(f"\n通过 {len(PASS)} / 失败 {len(FAIL)}")
 if FAIL:

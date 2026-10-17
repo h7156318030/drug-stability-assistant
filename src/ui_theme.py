@@ -16,6 +16,8 @@ import plotly.graph_objects as go
 import plotly.io as pio
 import streamlit as st
 
+from i18n import t
+
 APP_TITLE = "药品稳定性研究管理系统"
 PAGE_ICON = "💊"
 
@@ -172,7 +174,7 @@ def sidebar_brand(user_name: str, role_label: str) -> None:
     st.sidebar.markdown(
         '<div class="sb-brand">'
         '<div class="sb-brand-logo">💊</div>'
-        '<div><div class="sb-brand-name">稳定性研究系统</div>'
+        f'<div><div class="sb-brand-name">{_esc(t("稳定性研究系统"))}</div>'
         '<div class="sb-brand-sub">Stability Study Manager</div></div>'
         '</div>',
         unsafe_allow_html=True,
@@ -189,8 +191,8 @@ def login_brand() -> None:
     st.markdown(
         '<div class="sb-login-brand">'
         '<div class="sb-brand-logo">💊</div>'
-        f'<h1>{APP_TITLE}</h1>'
-        '<p>登录后使用 · Sign in to continue &nbsp;|&nbsp; 多用户权限 · 审计追踪 · 21 CFR Part 11 设计参考</p>'
+        f'<h1>{_esc(t(APP_TITLE))}</h1>'
+        f'<p>{_esc(t("登录后使用"))} &nbsp;|&nbsp; {_esc(t("多用户权限 · 审计追踪 · 21 CFR Part 11 设计参考"))}</p>'
         '</div>',
         unsafe_allow_html=True,
     )
@@ -203,7 +205,7 @@ def hero(title: str, subtitle: str = "") -> None:
 
 
 def footer() -> None:
-    st.markdown('<div class="sb-footer">研究辅助工具，未经 GxP 验证 · Research aid, not a validated GxP system</div>',
+    st.markdown(f'<div class="sb-footer">{_esc(t("研究辅助工具，未经 GxP 验证"))}</div>',
                 unsafe_allow_html=True)
 
 

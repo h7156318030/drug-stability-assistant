@@ -15,6 +15,7 @@ import teaching as T
 import report as R
 import streamlit as st
 st.session_state.user = {"username": "admin", "role": "admin", "name": "Admin"}
+import ui_common as UC
 import app as APP
 
 ok = []
@@ -85,7 +86,7 @@ eq = A.comparability_equivalence(s_l, s_l, '效价', '冷藏')
 check('T5 可比性', eq['equivalent'] is True)
 
 # 9. dashboard_aggregate 缓存
-agg = APP.dashboard_aggregate('final')
+agg = UC.dashboard_aggregate('final')
 check('T5 仪表盘聚合', agg['n_study'] >= 1)
 
 # 10. 强制降解评估（无强制降解数据时应返回空或安全）

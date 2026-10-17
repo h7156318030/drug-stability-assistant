@@ -127,11 +127,19 @@ print("\n== 1&6. 验证 np/stats 注入 app 模块 ==")
 import re
 with open(os.path.join(ROOT, "app.py"), "r", encoding="utf-8") as f:
     src = f.read()
-check("app.py 含 'import numpy as np'", "import numpy as np" in src)
-check("app.py 含 'import scipy.stats as stats'", "import scipy.stats as stats" in src)
+with open(os.path.join(ROOT, "src", "ui_common.py"), "r", encoding="utf-8") as f:
+    uc_src = f.read()
+check("ui_common.py 含 'import numpy as np'", "import numpy as np" in uc_src)
+check("ui_common.py 含 'import scipy.stats as stats'", "import scipy.stats as stats" in uc_src)
 # 确认分析函数中使用的 np./stats. 引用在源码中存在（已被导入覆盖）
-check("源码使用 np. 调用", bool(re.search(r"\bnp\.[a-zA-Z]", src)))
-check("源码使用 stats. 调用", bool(re.search(r"\bstats\.[a-zA-Z]", src)))
+import glob as _glob
+_mods = _glob.glob(os.path.join(ROOT, "src", "pages", "*.py")) + [os.path.join(ROOT, "src", "ui_common.py")]
+_missing = []
+for _m in _mods:
+    _t = open(_m, encoding="utf-8").read()
+    if re.search(r"\bnp\.[a-zA-Z]", _t) and "import numpy as np" not in _t: _missing.append(("np", _m))
+    if re.search(r"\bstats\.[a-zA-Z]", _t) and "import scipy.stats as stats" not in _t: _missing.append(("stats", _m))
+check("所有使用 np./stats. 的模块均已导入（拆分后的页面模块）", not _missing)
 # AppTest 加载模块无异常（验证模块可正常 import）
 from streamlit.testing.v1 import AppTest
 at = AppTest.from_file(os.path.join(ROOT, "app.py"))
