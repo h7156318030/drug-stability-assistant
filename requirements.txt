@@ -1,14 +1,14 @@
-# Core runtime dependencies (Python 3.9+)
-streamlit>=1.30.0
-pandas>=2.0.0
-numpy>=1.24.0
-scipy>=1.10.0
-matplotlib>=3.7.0
-plotly>=5.18.0
-openpyxl>=3.1.0
-reportlab>=4.0.0
-Pillow>=10.0.0
-bcrypt>=4.0.0
+# Core runtime dependencies (tested with Python 3.9 and the versions noted in docs/zh/架构与测试.md)
+streamlit>=1.50,<2
+pandas>=2.2,<3
+numpy>=1.26,<2.5
+scipy>=1.13,<2
+matplotlib>=3.8,<4
+plotly>=6.0,<7
+openpyxl>=3.1,<4
+reportlab>=4.0,<5
+Pillow>=10.0,<13
+bcrypt>=4.0,<6
 
 # Optional: only needed when DATABASE_URL points to PostgreSQL
-psycopg2-binary>=2.9.0
+psycopg2-binary>=2.9,<3

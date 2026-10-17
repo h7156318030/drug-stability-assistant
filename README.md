@@ -26,6 +26,18 @@
 
 ## 快速开始
 
+### Windows：一键启动（推荐）
+
+1. 安装 [Python 3.9 或更新版本](https://www.python.org/downloads/)，安装时勾选 **Add python.exe to PATH**。
+2. 双击项目根目录的 **`start.bat`**。
+   - 首次运行会在 `.venv\` 中创建独立环境并安装依赖（需要网络），不改动系统 Python。
+   - 浏览器会自动打开 http://localhost:8501 。
+   - 如果没有设置 `STAB_ADMIN_PASSWORD`，首次启动时控制台会输出 `admin` 账号的一次性口令，请记录并在登录后立即修改。
+   - 关闭控制台窗口即停止服务。端口可用环境变量 `PORT` 修改。
+
+### 手动启动（所有平台）
+
+
 环境要求：Python 3.9 及以上。
 
 ```bash

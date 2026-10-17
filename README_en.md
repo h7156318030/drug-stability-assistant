@@ -26,6 +26,18 @@ A locally run tool for managing and analysing drug stability studies for chemica
 
 ## Quick start
 
+### Windows: one-click start (recommended)
+
+1. Install [Python 3.9 or newer](https://www.python.org/downloads/) and tick **Add python.exe to PATH**.
+2. Double-click **`start.bat`** in the project folder.
+   - The first run creates a private environment in `.venv\` and installs the dependencies (needs network). The system Python is not changed.
+   - The browser opens http://localhost:8501 automatically.
+   - If `STAB_ADMIN_PASSWORD` is not set, the console prints a one-time password for the `admin` account on the first start. Record it and change it after the first login.
+   - Close the console window to stop the server. Set the environment variable `PORT` to use another port.
+
+### Manual start (all platforms)
+
+
 Requirements: Python 3.9 or later.
 
 ```bash

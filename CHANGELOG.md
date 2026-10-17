@@ -32,6 +32,7 @@
 - **Statistics (ICH Q1E)**: batch poolability now uses the Q1E ANCOVA procedure (slopes first, then intercepts; significance level 0.25). It replaces three different empirical rules. p-values are reported. Checked in `tests/test_statistics_benchmark.py` against independent calculations (16 checks). Needs statistical review.
 - **Fixed**: the multi-model plot on the shelf-life page raised an error when testing an array's truth value.
 - **Electronic signatures extended**: creating users, enabling or disabling users, and generating a full backup now require password re-entry and write `ESIGN` records.
+- **One-click start (Windows)**: `start.bat` creates a private `.venv`, installs the pinned dependencies, starts the server and opens the browser. Dependency ranges are pinned to the tested majors. The full test suite passes in a fresh venv (Python 3.11, Streamlit 1.66).
 - **Regulatory gap analysis**: `docs/en/gap_analysis.md` and `docs/zh/法规符合性差距分析.md` benchmark the program against ICH Q1A–Q1E, Q1B, Q1D, Q5C, Q2(R2)/Q14, Chinese guidance, 21 CFR Part 11 and ALCOA+, listing P0/P1/P2 gaps and items to verify against official texts.
 
 **中文**
@@ -64,6 +65,7 @@
 - **统计（ICH Q1E）**：批合并判断改用 Q1E 的 ANCOVA 检验（先斜率、再截距，显著性水平 0.25），替换了原先三处各不相同的经验规则，并输出 p 值。由 `tests/test_statistics_benchmark.py` 与独立计算对照（16 项）。需要统计人员复核。
 - **修复**：有效期页的多模型图对数组做真值判断，导致报错。
 - **电子签名扩展**：创建用户、启用或禁用用户、生成整库备份均需重新输入口令，并写入 `ESIGN` 记录。
+- **一键启动（Windows）**：`start.bat` 自动创建独立的 `.venv`、安装锁定范围内的依赖、启动服务并打开浏览器。依赖范围已限定在测试过的主版本。完整测试在全新 venv（Python 3.11、Streamlit 1.66）中通过。
 - **法规符合性差距分析**：`docs/zh/法规符合性差距分析.md` 与 `docs/en/gap_analysis.md` 对标 ICH Q1A–Q1E、Q1B、Q1D、Q5C、Q2(R2)/Q14、中国指导原则、21 CFR Part 11 与 ALCOA+，列出 P0/P1/P2 差距，并标注需对照官方原文核实的条目。
 
 > **升级提示 / Upgrade note**: if an existing database still has the `admin` account with `Admin@2026`, log in and change the password. / 若现有数据库的 `admin` 账号仍使用 `Admin@2026`，请登录后立即修改。
