@@ -1,0 +1,11 @@
+# Streamlit 主题（与 src/ui_theme.py 的颜色 token 保持一致）
+[theme]
+base = "light"
+primaryColor = "#0F766E"
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#F1F5F9"
+textColor = "#0F172A"
+font = "sans serif"
+
+[server]
+headless = true

@@ -1,0 +1,9 @@
+stability.db
+*.db
+*.db-journal
+__pycache__/
+*.pyc
+.env
+backups/
+*.json.bak
+.streamlit/secrets.toml
