@@ -8,4 +8,3 @@ backups/
 *.json.bak
 .streamlit/secrets.toml
 .venv/
-.github/workflows/
